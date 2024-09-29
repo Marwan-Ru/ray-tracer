@@ -23,7 +23,30 @@ struct Color {
     static Color black() {
         return Color{ 0, 0, 0 };
     }
+
+    void cap() {
+        this->red = min<float>(this->red, 250.0);
+        this->green = min<float>(this->green, 250.0);
+        this->blue = min<float>(this->blue, 250.0);
+
+        this->red = max<float>(this->red, 0);
+        this->green = max<float>(this->green, 0);
+        this->blue = max<float>(this->blue, 0);
+    }
+
+    Color operator*(const float val) const {
+        return Color{ this->red * val, this->green * val, this->blue * val };
+    }
+
+    Color operator+(const Color c2) const {
+        return Color{ this->red + c2.red, this->green + c2.green, this->blue + c2.blue };
+    }
 };
+
+static void write_color(std::ofstream * out, Color c) {
+
+    * out << std::to_string(static_cast<int>(c.red)) << " " << std::to_string(static_cast<int>(c.green)) << " " << std::to_string(static_cast<int>(c.blue)) << " ";
+}
 
 struct Direction {
     float x, y, z;
@@ -103,9 +126,9 @@ struct Sphere {
 
 struct Light {
     Point position;
-    Color intensity;
+    float intensity;
 
-    Light(const Point position, const Color intensity) : position(position), intensity(intensity) {}
+    Light(const Point position, const float intensity) : position(position), intensity(intensity) {}
 };
 
 struct Scene {
@@ -127,13 +150,13 @@ struct Scene {
 
 struct Intersection {
     bool isIntersection;
-    float distance;
+    float t;
     Point intersection;
     Sphere sphere;
 
-    Intersection(const bool isIntersection, const float distance, const Point intersection, const Sphere& sphere) : isIntersection(isIntersection), distance(distance), intersection(intersection), sphere(sphere) {}
+    Intersection(const bool isIntersection, const float t, const Point intersection, const Sphere& sphere) : isIntersection(isIntersection), t(t), intersection(intersection), sphere(sphere) {}
 
-    Intersection() : isIntersection(false), distance(0), intersection(Point{ 0,0,0 }), sphere(Sphere(0, Point{ 0,0,0 }, Color::white())) {}
+    Intersection() : isIntersection(false), t(0), intersection(Point{ 0,0,0 }), sphere(Sphere(0, Point{ 0,0,0 }, Color::white())) {}
 };
 
 float sq(const float val) {
@@ -160,25 +183,93 @@ Intersection intersect_sphere(Sphere s, Rayon r) {
         double t2 = (-b + sqdelta) / (2.0 * a);
 
         if (t1 >= 0.0) {
-            ret.distance = t1;
+            ret.t = t1;
 
         }
         else if (t2 >= 0.0) {
-            ret.distance = t2;
+            ret.t = t2;
         }
 
-        ret.intersection = r.origin + r.direction * ret.distance;
+        ret.intersection = r.origin + r.direction * ret.t;
 
         ret.sphere = s;
     }
     return ret;
 }
 
+Intersection intersect_spheres(Scene s, Rayon r) {
+    float closest = INFINITY;
+    Intersection ret = Intersection();
+
+
+    for (auto sphere : s.spheres) {
+        if(const Intersection int_i = intersect_sphere(sphere, r); int_i.isIntersection && int_i.t < closest) {
+            closest = int_i.t;
+            ret = int_i;
+        }
+    }
+
+    return ret;
+}
 
 int main()
 {
-    int w = 800;
-    int h = 600;
+    constexpr int w = 800;
+    constexpr int h = 600;
+
+    // We use the ppm format
+    std::ofstream fileOut;
+    fileOut.open("rtresult.ppm", std::fstream::out);
+    fileOut << "P3" << std::endl << std::to_string(w) << " " << std::to_string(h) << std::endl << "255" << std::endl;
+
+    float focal = 100000.0;
+
+    auto S = Scene();
+
+    S.addLight( Light(Point{ 200,250,-100 }, 300));
+    S.addLight( Light(Point{ -200,-250, -100 }, 300));
+
+    S.addSphere( Sphere(200, Point{ 0,0,300 }, Color::white()) );
+    S.addSphere( Sphere(150, Point{ -200,-200,320 }, Color::white()) );
+
+    for (int i = 0; i < h; i++) {
+        float y = i;
+        for (int j = 0; j < w; j++) {
+            float x = j;
+
+            Point pixel = Point{static_cast<float>(x * 2.0 - w),static_cast<float>(y * 2.0 - h),0.0};
+
+            Point focalPoint = Point{0.0,0.0,-focal};
+            Direction direction = pixel - focalPoint;
+
+            Rayon ray = Rayon(pixel, direction);
+
+            Intersection it_m = intersect_spheres(S, ray);
+
+            if (it_m.isIntersection) {
+                // Compute the distance in "scene"-space
+                Color v = Color::black();
+
+                for (auto l : S.lights) {
+                    Direction to_light = l.position - it_m.intersection;
+                    float light_distance = to_light.lenght();
+
+                    Direction N = it_m.intersection - it_m.sphere.center;
+                    float cos = to_light.normalize().dot(N.normalize());
+
+                    v = v + (it_m.sphere.albedo * (cos / light_distance)) * l.intensity;
+                }
 
 
+
+                // let pixel = tonemap(&v, 1.0);
+
+                v.cap();
+                write_color(&fileOut, v);
+            }
+            else {
+                write_color(&fileOut, Color(0, 120, 50));
+            }
+        }
+    }
 }
