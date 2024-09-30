@@ -222,15 +222,15 @@ int main()
     fileOut.open("rtresult.ppm", std::fstream::out);
     fileOut << "P3" << std::endl << std::to_string(w) << " " << std::to_string(h) << std::endl << "255" << std::endl;
 
-    float focal = 100000.0;
+    const float focal = 1000.0;
 
     auto S = Scene();
 
-    S.addLight( Light(Point{ 200,250,-100 }, 300));
-    S.addLight( Light(Point{ -200,-250, -100 }, 300));
+    S.addLight( Light(Point{ 0,0,0 }, 10000));
+    // S.addLight( Light(Point{ -200,-250, -100 }, 300));
 
-    S.addSphere( Sphere(200, Point{ 0,0,300 }, Color::white()) );
-    S.addSphere( Sphere(150, Point{ -400,-200,320 }, Color(200, 0, 0) ));
+    S.addSphere( Sphere(200, Point{ 0,0, 300 }, Color::white()) );
+    S.addSphere( Sphere(150, Point{ -400,-200,450 }, Color(200, 0, 0) ));
 
     for (int i = 0; i < h; i++) {
         float y = i;
@@ -248,20 +248,43 @@ int main()
 
             if (it_m.isIntersection) {
                 // Compute the distance in "scene"-space
-                Color v = Color::black();
+                Color contrib = Color::black();
 
                 for (auto l : S.lights) {
+                    // Calculating light coming from object (through diffusion)
                     Direction to_light = l.position - it_m.intersection;
                     float light_distance = to_light.lenght();
 
                     Direction N = it_m.intersection - it_m.sphere.center;
                     float cos = to_light.normalize().dot(N.normalize());
 
-                    v = v + (it_m.sphere.albedo * (cos / light_distance)) * l.intensity;
+                    Color v = (it_m.sphere.albedo * (cos / sq(light_distance))) * l.intensity;
+
+                    // Visibility
+                    // We shoot a ray towards the light
+                    Direction shadow_direction = to_light.inverse().normalize();
+                    // We add a small offset to the origin point of the ray, so it won't intersect the surface we are on
+                    Point origin_with_delta = it_m.intersection + N * 0.1;
+                    Rayon shadow_ray = Rayon(origin_with_delta, shadow_direction);
+
+                    // Compute intersection (could be optimised)
+                    Intersection shadow_intersection = intersect_spheres(S, shadow_ray);
+                    float visibility = 1.0;
+
+                    /*if (shadow_intersection.isIntersection) {
+                        if (shadow_intersection.t > light_distance) {
+                            // Intersection is behind the light so we're ok
+                            visibility = 1.0;
+                        }
+                    }else {
+                        visibility = 1.0;
+                    }*/
+
+                    contrib = contrib + v * visibility;
                 }
 
-                v.cap();
-                write_color(&fileOut, v);
+                contrib.cap();
+                write_color(&fileOut, contrib);
             }
             else {
                 write_color(&fileOut, Color(0, 120, 50));
