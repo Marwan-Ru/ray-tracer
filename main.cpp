@@ -230,7 +230,7 @@ int main()
     S.addLight( Light(Point{ -200,-250, -100 }, 300));
 
     S.addSphere( Sphere(200, Point{ 0,0,300 }, Color::white()) );
-    S.addSphere( Sphere(150, Point{ -200,-200,320 }, Color::white()) );
+    S.addSphere( Sphere(150, Point{ -400,-200,320 }, Color(200, 0, 0) ));
 
     for (int i = 0; i < h; i++) {
         float y = i;
@@ -259,10 +259,6 @@ int main()
 
                     v = v + (it_m.sphere.albedo * (cos / light_distance)) * l.intensity;
                 }
-
-
-
-                // let pixel = tonemap(&v, 1.0);
 
                 v.cap();
                 write_color(&fileOut, v);
