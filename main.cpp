@@ -1,6 +1,7 @@
 // Ray-tracer.cpp : Ce fichier contient la fonction 'main'. L'exécution du programme commence et se termine à cet endroit.
 //
 
+// ReSharper disable CppUseAuto
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -165,21 +166,19 @@ float sq(const float val) {
 
 Intersection intersect_sphere(const Sphere &s, const Rayon &r) {
     Intersection ret = Intersection();
-    Direction oc = r.origin - s.center;
+    const Direction oc = r.origin - s.center;
 
     // Note : we can simplify the value of a if ray direction is normalized
-    double a = r.direction.lenght_squared();
-    double b = 2.0 * oc.dot(r.direction);
-    double c = oc.lenght_squared() - sq(s.radius);
-
-    double delta = b * b - 4.0 * a * c;
+    const double a = r.direction.lenght_squared();
+    const double b = 2.0 * oc.dot(r.direction);
+    const double c = oc.lenght_squared() - sq(s.radius);
 
     // is intersection (we don't care yet about positive or first)
-    if (delta >= 0.0) {
+    if (const double delta = b * b - 4.0 * a * c; delta >= 0.0) {
 
         double sqdelta = sqrt(delta);
-        double t1 = (-b - sqdelta) / (2.0 * a);
-        double t2 = (-b + sqdelta) / (2.0 * a);
+        const double t1 = (-b - sqdelta) / (2.0 * a);
+        const double t2 = (-b + sqdelta) / (2.0 * a);
 
         if (t1 >= 0.0 && t2 >= 0.0) {
             ret.t = min(t1, t2); // Choose the closer intersection
@@ -218,17 +217,49 @@ Intersection intersect_spheres(const Scene& s, const Rayon &r) {
 
 /*Calculates light visibility for a given light and point*/
 float visibility(const Scene& S, const Light l, const Point p) {
-    Direction dir = (l.position - p).normalize();
-    auto r = Rayon(p + dir * 0.1, dir);
+    const Direction dir = (l.position - p).normalize();
+    const auto r = Rayon(p + dir * 0.1, dir);
 
-    float light_distance = (l.position - p).lenght();
+    const float light_distance = (l.position - p).lenght();
 
     if(const Intersection ret = intersect_spheres(S, r); ret.isIntersection) {
-        float intersection_distance = (ret.intersection - p).lenght();
-        return 0;
+        if (const float intersection_distance = (ret.intersection - p).lenght(); intersection_distance < light_distance) {
+            return 0;
+        }
     }
 
     return 1;
+}
+
+Scene Cornell_box() {
+    Scene S = Scene();
+
+    // Box
+    S.addSphere( Sphere(1e5, Point{ 1e5+1,40.8,81.6 }, Color(75,25,25)) ); //left
+    S.addSphere( Sphere(1e5, Point{ -1e5+99,40.8,81.6 }, Color(25,25,75)) ); //Right
+    S.addSphere( Sphere(1e5, Point{ 50,40.8, 1e5 }, Color(75,75,75)) ); //Back
+    S.addSphere( Sphere(1e5, Point{ 50, 1e5, 81.6 }, Color(75,75,75)) ); //Bottom
+    S.addSphere( Sphere(1e5, Point{ 50,-1e5+81.6,81.6 }, Color(75,75,75)) ); //Top
+
+    // Spheres
+    S.addSphere( Sphere(16.5, Point{ 27,16.5,47 }, Color(255, 255, 255)) ); //left
+    S.addSphere( Sphere(16.5, Point{ 73,16.5,78}, Color(255, 255, 255)) ); //right
+
+    // Lights
+    S.addLight( Light(Point{ 0, 0,50 }, 100000));
+
+    return S;
+}
+
+Scene very_simple() {
+    Scene S = Scene();
+
+    S.addLight( Light(Point{ 200,250,-100 }, 100000));
+    S.addLight( Light(Point{ -200,-250, -100 }, 100000));
+
+    S.addSphere( Sphere(200, Point{ 0,0,300 }, Color::white()) );
+    S.addSphere( Sphere(150, Point{ -400,-200,320 }, Color(200, 0, 0) ));
+    return S;
 }
 
 int main()
@@ -241,15 +272,9 @@ int main()
     fileOut.open("rtresult.ppm", std::fstream::out);
     fileOut << "P3" << std::endl << std::to_string(w) << " " << std::to_string(h) << std::endl << "255" << std::endl;
 
-    float focal = 100000.0;
+    const float focal = 10.0;
 
-    auto S = Scene();
-
-    S.addLight( Light(Point{ 200,250,-100 }, 100000));
-    S.addLight( Light(Point{ -200,-250, -100 }, 100000));
-
-    S.addSphere( Sphere(200, Point{ 0,0,300 }, Color::white()) );
-    S.addSphere( Sphere(150, Point{ -400,-200,320 }, Color(200, 0, 0) ));
+    Scene S = Cornell_box();
 
     for (int i = 0; i < h; i++) {
         float y = i;
@@ -263,9 +288,7 @@ int main()
 
             Rayon ray = Rayon(pixel, direction.normalize());
 
-            Intersection it_m = intersect_spheres(S, ray);
-
-            if (it_m.isIntersection) {
+            if (Intersection it_m = intersect_spheres(S, ray); it_m.isIntersection) {
                 // Compute the distance in "scene"-space
                 Color v = Color::black();
 
@@ -285,7 +308,7 @@ int main()
                 write_color(&fileOut, v);
             }
             else {
-                write_color(&fileOut, Color(0, 120, 50));
+                write_color(&fileOut, Color(30, 30, 30));
             }
         }
     }
