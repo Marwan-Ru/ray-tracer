@@ -156,14 +156,14 @@ struct Intersection {
 
     Intersection(const bool isIntersection, const float t, const Point intersection, const Sphere& sphere) : isIntersection(isIntersection), t(t), intersection(intersection), sphere(sphere) {}
 
-    Intersection() : isIntersection(false), t(0), intersection(Point{ 0,0,0 }), sphere(Sphere(0, Point{ 0,0,0 }, Color::white())) {}
+    Intersection() : isIntersection(false), t(-INFINITY), intersection(Point{ 0,0,0 }), sphere(Sphere(0, Point{ 0,0,0 }, Color::white())) {}
 };
 
 float sq(const float val) {
     return val * val;
 }
 
-Intersection intersect_sphere(Sphere s, Rayon r) {
+Intersection intersect_sphere(const Sphere &s, const Rayon &r) {
     Intersection ret = Intersection();
     Direction oc = r.origin - s.center;
 
@@ -176,13 +176,14 @@ Intersection intersect_sphere(Sphere s, Rayon r) {
 
     // is intersection (we don't care yet about positive or first)
     if (delta >= 0.0) {
-        ret.isIntersection = true;
 
         double sqdelta = sqrt(delta);
         double t1 = (-b - sqdelta) / (2.0 * a);
         double t2 = (-b + sqdelta) / (2.0 * a);
 
-        if (t1 >= 0.0) {
+        if (t1 >= 0.0 && t2 >= 0.0) {
+            ret.t = min(t1, t2); // Choose the closer intersection
+        } else if (t1 >= 0.0) {
             ret.t = t1;
 
         }
@@ -190,26 +191,44 @@ Intersection intersect_sphere(Sphere s, Rayon r) {
             ret.t = t2;
         }
 
-        ret.intersection = r.origin + r.direction * ret.t;
+        if(ret.t >= 0.0) {
+            ret.isIntersection = true;
+            ret.intersection = r.origin + r.direction * ret.t;
+            ret.sphere = s;
+        }
 
-        ret.sphere = s;
     }
     return ret;
 }
 
-Intersection intersect_spheres(Scene s, Rayon r) {
+Intersection intersect_spheres(const Scene& s, const Rayon &r) {
     float closest = INFINITY;
     Intersection ret = Intersection();
 
 
     for (auto sphere : s.spheres) {
-        if(const Intersection int_i = intersect_sphere(sphere, r); int_i.isIntersection && int_i.t < closest) {
+        if(const Intersection int_i = intersect_sphere(sphere, r); int_i.isIntersection && int_i.t < closest && int_i.t >= 0) {
             closest = int_i.t;
             ret = int_i;
         }
     }
 
     return ret;
+}
+
+/*Calculates light visibility for a given light and point*/
+float visibility(const Scene& S, const Light l, const Point p) {
+    Direction dir = (l.position - p).normalize();
+    auto r = Rayon(p + dir * 0.1, dir);
+
+    float light_distance = (l.position - p).lenght();
+
+    if(const Intersection ret = intersect_spheres(S, r); ret.isIntersection) {
+        float intersection_distance = (ret.intersection - p).lenght();
+        return 0;
+    }
+
+    return 1;
 }
 
 int main()
@@ -226,8 +245,8 @@ int main()
 
     auto S = Scene();
 
-    S.addLight( Light(Point{ 200,250,-100 }, 300));
-    S.addLight( Light(Point{ -200,-250, -100 }, 300));
+    S.addLight( Light(Point{ 200,250,-100 }, 100000));
+    S.addLight( Light(Point{ -200,-250, -100 }, 100000));
 
     S.addSphere( Sphere(200, Point{ 0,0,300 }, Color::white()) );
     S.addSphere( Sphere(150, Point{ -400,-200,320 }, Color(200, 0, 0) ));
@@ -242,7 +261,7 @@ int main()
             Point focalPoint = Point{0.0,0.0,-focal};
             Direction direction = pixel - focalPoint;
 
-            Rayon ray = Rayon(pixel, direction);
+            Rayon ray = Rayon(pixel, direction.normalize());
 
             Intersection it_m = intersect_spheres(S, ray);
 
@@ -252,12 +271,14 @@ int main()
 
                 for (auto l : S.lights) {
                     Direction to_light = l.position - it_m.intersection;
-                    float light_distance = to_light.lenght();
+                    float light_distance = to_light.lenght_squared();
 
-                    Direction N = it_m.intersection - it_m.sphere.center;
-                    float cos = to_light.normalize().dot(N.normalize());
+                    Direction N = (it_m.intersection - it_m.sphere.center).normalize();
+                    float cos = to_light.normalize().dot(N);
 
-                    v = v + (it_m.sphere.albedo * (cos / light_distance)) * l.intensity;
+                    Color light_contribution = (it_m.sphere.albedo * (cos / light_distance)) * l.intensity;
+
+                    v = v + light_contribution * visibility(S, l, it_m.intersection);
                 }
 
                 v.cap();
