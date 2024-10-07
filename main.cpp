@@ -104,13 +104,23 @@ struct Point {
     Direction operator-(const Point p2) const {
         return Direction{ this->x - p2.x, this->y - p2.y, this->z - p2.z };
     }
+
+    Direction operator/(const float val) const {
+        return Direction{ this->x / val, this->y / val, this->z / val };
+    }
 };
+
+
+Direction operator/(const float lhs, const Direction & rhs) {
+    return Direction{ lhs / rhs.x, lhs / rhs.y, lhs / rhs.z };
+}
 
 struct Rayon {
     Point origin;
     Direction direction;
+    Direction inv_direction;
 
-    Rayon(const Point origin, const Direction direction) : origin(origin), direction(direction) {}
+    Rayon(const Point origin, const Direction direction) : origin(origin), direction(direction), inv_direction(1 / direction) {}
 
     [[nodiscard]] float getIntersectionDistance(const float t) const {
         return this->direction.lenght() * t;
@@ -235,15 +245,15 @@ Scene Cornell_box() {
     Scene S = Scene();
 
     // Box
-    S.addSphere( Sphere(1e5, Point{ 1e5+1,40.8,81.6 }, Color(75,25,25)) ); //left
-    S.addSphere( Sphere(1e5, Point{ -1e5+99,40.8,81.6 }, Color(25,25,75)) ); //Right
-    S.addSphere( Sphere(1e5, Point{ 50,40.8, 1e5 }, Color(75,75,75)) ); //Back
-    S.addSphere( Sphere(1e5, Point{ 50, 1e5, 81.6 }, Color(75,75,75)) ); //Bottom
-    S.addSphere( Sphere(1e5, Point{ 50,-1e5+81.6,81.6 }, Color(75,75,75)) ); //Top
+    S.addSphere( Sphere(1e5, Point{ 1e5+1,40.8,81.6 }, Color::white()) ); //left
+    S.addSphere( Sphere(1e5, Point{ -1e5+99,40.8,81.6 }, Color::white()) ); //Right
+    S.addSphere( Sphere(1e5, Point{ 50,40.8, 1e5 }, Color::white()) ); //Back
+    S.addSphere( Sphere(1e5, Point{ 50, 1e5, 81.6 }, Color::white()) ); //Bottom
+    S.addSphere( Sphere(1e5, Point{ 50,-1e5+81.6,81.6 }, Color::white()) ); //Top
 
     // Spheres
-    S.addSphere( Sphere(16.5, Point{ 27,16.5,47 }, Color(255, 255, 255)) ); //left
-    S.addSphere( Sphere(16.5, Point{ 73,16.5,78}, Color(255, 255, 255)) ); //right
+    S.addSphere( Sphere(16.5, Point{ 27,16.5,47 }, Color(0, 255, 255)) ); //left
+    S.addSphere( Sphere(16.5, Point{ 73,16.5,78}, Color(255, 0, 255)) ); //right
 
     // Lights
     S.addLight( Light(Point{ 0, 0,50 }, 100000));
@@ -262,6 +272,16 @@ Scene very_simple() {
     return S;
 }
 
+Scene close_scene() {
+    Scene S = Scene();
+
+    S.addSphere( Sphere(10, Point{ 0,0,20 }, Color::white()) );
+
+    S.addLight( Light(Point{ 0,0, -100 }, 100) );
+
+    return S;
+}
+
 int main()
 {
     constexpr int w = 800;
@@ -272,9 +292,9 @@ int main()
     fileOut.open("rtresult.ppm", std::fstream::out);
     fileOut << "P3" << std::endl << std::to_string(w) << " " << std::to_string(h) << std::endl << "255" << std::endl;
 
-    const float focal = 10.0;
+    const float focal = 1000.0;
 
-    Scene S = Cornell_box();
+    Scene S = very_simple();
 
     for (int i = 0; i < h; i++) {
         float y = i;
@@ -308,7 +328,7 @@ int main()
                 write_color(&fileOut, v);
             }
             else {
-                write_color(&fileOut, Color(30, 30, 30));
+                write_color(&fileOut, Color(30, 200, 30));
             }
         }
     }
