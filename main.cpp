@@ -8,124 +8,11 @@
 #include <vector>
 #include <cmath>
 
+#include "util.h"
+#include "ray.h"
+#include "AABB.h"
+
 using namespace std;
-
-struct Color {
-    float red, green, blue;
-
-    Color(const float red, const float green, const float blue) : red(red), green(green), blue(blue) {}
-
-    Color() : red(0), green(0), blue(0) {}
-
-    static Color white() {
-        return Color{ 255, 255, 255 };
-    }
-
-    static Color black() {
-        return Color{ 0, 0, 0 };
-    }
-
-    void cap() {
-        this->red = min<float>(this->red, 250.0);
-        this->green = min<float>(this->green, 250.0);
-        this->blue = min<float>(this->blue, 250.0);
-
-        this->red = max<float>(this->red, 0);
-        this->green = max<float>(this->green, 0);
-        this->blue = max<float>(this->blue, 0);
-    }
-
-    Color operator*(const float val) const {
-        return Color{ this->red * val, this->green * val, this->blue * val };
-    }
-
-    Color operator+(const Color c2) const {
-        return Color{ this->red + c2.red, this->green + c2.green, this->blue + c2.blue };
-    }
-};
-
-static void write_color(std::ofstream * out, Color c) {
-
-    * out << std::to_string(static_cast<int>(c.red)) << " " << std::to_string(static_cast<int>(c.green)) << " " << std::to_string(static_cast<int>(c.blue)) << " ";
-}
-
-struct Direction {
-    float x, y, z;
-
-    Direction(const float x, const float y, const float z) : x(x), y(y), z(z) {}
-
-    [[nodiscard]] float dot(const Direction d2) const {
-        return this->x * d2.x + this->y * d2.y + this->z * d2.z;
-    }
-
-    [[nodiscard]] float lenght()const {
-        return sqrt(this->dot(*this));
-    }
-
-    [[nodiscard]] float lenght_squared()const {
-        return this->dot(*this);
-    }
-
-    Direction operator/(const float val) const {
-        return Direction{ this->x / val, this->y / val, this->z / val };
-    }
-
-    [[nodiscard]] Direction normalize() const {
-        const float len = this->lenght();
-        return Direction{ this->x / len, this->y / len, this->z / len };
-    }
-
-    [[nodiscard]] Direction inverse() const {
-        return Direction{ -this->x, -this->y, -this->z };
-    }
-
-    Direction operator*(const float val) const {
-        return Direction{ this->x * val, this->y * val, this->z * val };
-    }
-
-    Direction operator+(const Direction d2) const {
-        return Direction{ this->x + d2.x, this->y + d2.y, this->z + d2.z };
-    }
-};
-
-struct Point {
-    float x, y, z;
-
-    Point(const float x, const float y, const float z) : x(x), y(y), z(z) {}
-
-    Point operator+(const Direction d2) const {
-        return Point{ this->x + d2.x, this->y + d2.y, this->z + d2.z };
-    }
-
-    Point operator-(const Direction d2) const {
-        return Point{ this->x - d2.x, this->y - d2.y, this->z - d2.z };
-    }
-
-    Direction operator-(const Point p2) const {
-        return Direction{ this->x - p2.x, this->y - p2.y, this->z - p2.z };
-    }
-
-    Direction operator/(const float val) const {
-        return Direction{ this->x / val, this->y / val, this->z / val };
-    }
-};
-
-
-Direction operator/(const float lhs, const Direction & rhs) {
-    return Direction{ lhs / rhs.x, lhs / rhs.y, lhs / rhs.z };
-}
-
-struct Rayon {
-    Point origin;
-    Direction direction;
-    Direction inv_direction;
-
-    Rayon(const Point origin, const Direction direction) : origin(origin), direction(direction), inv_direction(1 / direction) {}
-
-    [[nodiscard]] float getIntersectionDistance(const float t) const {
-        return this->direction.lenght() * t;
-    }
-};
 
 struct Sphere {
     float radius;
@@ -174,14 +61,14 @@ float sq(const float val) {
     return val * val;
 }
 
-Intersection intersect_sphere(const Sphere &s, const Rayon &r) {
+Intersection intersect_sphere(const Sphere &s, const Ray &r) {
     Intersection ret = Intersection();
     const Direction oc = r.origin - s.center;
 
     // Note : we can simplify the value of a if ray direction is normalized
-    const double a = r.direction.lenght_squared();
+    const double a = r.direction.length_squared();
     const double b = 2.0 * oc.dot(r.direction);
-    const double c = oc.lenght_squared() - sq(s.radius);
+    const double c = oc.length_squared() - sq(s.radius);
 
     // is intersection (we don't care yet about positive or first)
     if (const double delta = b * b - 4.0 * a * c; delta >= 0.0) {
@@ -210,7 +97,7 @@ Intersection intersect_sphere(const Sphere &s, const Rayon &r) {
     return ret;
 }
 
-Intersection intersect_spheres(const Scene& s, const Rayon &r) {
+Intersection intersect_spheres(const Scene& s, const Ray &r) {
     float closest = INFINITY;
     Intersection ret = Intersection();
 
@@ -228,12 +115,12 @@ Intersection intersect_spheres(const Scene& s, const Rayon &r) {
 /*Calculates light visibility for a given light and point*/
 float visibility(const Scene& S, const Light l, const Point p) {
     const Direction dir = (l.position - p).normalize();
-    const auto r = Rayon(p + dir * 0.1, dir);
+    const auto r = Ray(p + dir * 0.1, dir);
 
-    const float light_distance = (l.position - p).lenght();
+    const float light_distance = (l.position - p).length();
 
     if(const Intersection ret = intersect_spheres(S, r); ret.isIntersection) {
-        if (const float intersection_distance = (ret.intersection - p).lenght(); intersection_distance < light_distance) {
+        if (const float intersection_distance = (ret.intersection - p).length(); intersection_distance < light_distance) {
             return 0;
         }
     }
@@ -306,7 +193,7 @@ int main()
             Point focalPoint = Point{0.0,0.0,-focal};
             Direction direction = pixel - focalPoint;
 
-            Rayon ray = Rayon(pixel, direction.normalize());
+            Ray ray = Ray(pixel, direction.normalize());
 
             if (Intersection it_m = intersect_spheres(S, ray); it_m.isIntersection) {
                 // Compute the distance in "scene"-space
@@ -314,7 +201,7 @@ int main()
 
                 for (auto l : S.lights) {
                     Direction to_light = l.position - it_m.intersection;
-                    float light_distance = to_light.lenght_squared();
+                    float light_distance = to_light.length_squared();
 
                     Direction N = (it_m.intersection - it_m.sphere.center).normalize();
                     float cos = to_light.normalize().dot(N);
