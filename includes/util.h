@@ -12,7 +12,6 @@
 #include <string>
 #include <cmath>
 
-
 using namespace std;
 
 struct Color {

@@ -14,11 +14,23 @@
 #include "AABB.h"
 #include "intersection.h"
 
-// --- Ray related Tests ---
 inline bool test_ray_init() {
     const Ray r = Ray(Point(0,0,0), Direction(1,0,0));
 
     return r.direction == Direction(1,0,0) && r.origin == Point(0,0,0);
+}
+
+inline bool test_sphere_to_aabb() {
+    const Sphere s1 = Sphere(10, Point(0,0,0), Color::white());
+    const Sphere s2 = Sphere(20, Point(-100,0,0), Color::white());
+
+    const AABB aabb1 = sphere_to_aabb(s1);
+    const AABB aabb2 = sphere_to_aabb(s2);
+
+    const bool res1 = aabb1.pmin == Point(-10,-10,-10) && aabb1.pmax == Point(10,10,10);
+    const bool res2 = aabb2.pmin == Point(-120, -20, -20) && aabb2.pmax == Point(-80, 20, 20);
+
+    return res1 && res2;
 }
 
 // --- Intersections related tests ---
@@ -69,6 +81,7 @@ inline Scene full_test_scene() {
     launch_test("Ray initialisation", test_ray_init());
     launch_test("Ray sphere intersection", test_sphere_intersection());
     launch_test("Ray AABB intersection" , test_aabb_intersection());
+    launch_test("Sphere to aabb", test_sphere_to_aabb());
 
     // --- End of unit testing ---
 
