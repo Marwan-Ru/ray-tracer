@@ -3,4 +3,7 @@ project(ray_tracer)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(ray_tracer main.cpp)
+add_executable(ray_tracer main.cpp
+        includes/intersection.h)
+
+target_include_directories (ray_tracer PUBLIC includes)

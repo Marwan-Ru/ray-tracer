@@ -125,9 +125,12 @@ struct Point {
     }
 
     [[nodiscard]] Point maxp(const Point p2) const {
-        return {std::max(this->x, p2.x),std::min(max->y, p2.y),std::max(this->z, p2.z)};
+        return {std::max(this->x, p2.x),std::max(this->y, p2.y),std::max(this->z, p2.z)};
     }
 };
 
+inline float sq(const float val) {
+    return val * val;
+}
 
 #endif //UTIL_H
