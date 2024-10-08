@@ -12,6 +12,7 @@
 #include "ray.h"
 #include "AABB.h"
 #include "intersection.h"
+#include "tests.h"
 
 using namespace std;
 
@@ -31,6 +32,7 @@ float visibility(const Scene& S, const Light l, const Point p) {
     return 1;
 }
 
+// --- Some scenes --
 Scene Cornell_box() {
     Scene S = Scene();
 

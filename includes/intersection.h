@@ -73,7 +73,6 @@ inline Intersection intersect_sphere(const Sphere &s, const Ray &r) {
             ret.t = min(t1, t2); // Choose the closer intersection
         } else if (t1 >= 0.0) {
             ret.t = t1;
-
         }
         else if (t2 >= 0.0) {
             ret.t = t2;

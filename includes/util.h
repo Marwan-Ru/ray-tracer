@@ -47,6 +47,14 @@ struct Color {
     Color operator+(const Color c2) const {
         return Color{ this->red + c2.red, this->green + c2.green, this->blue + c2.blue };
     }
+
+    bool operator==(const Color c2) const {
+        return this->red == c2.red && this->green == c2.green && this->blue == c2.blue;
+    }
+
+    bool operator!=(const Color c2) const {
+        return this->red != c2.red || this->green != c2.green || this->blue != c2.blue;
+    }
 };
 
 static void write_color(std::ofstream * out, Color c) {
@@ -93,6 +101,14 @@ struct Direction {
     Direction operator+(const Direction d2) const {
         return Direction{ this->x + d2.x, this->y + d2.y, this->z + d2.z };
     }
+
+    bool operator==(const Direction d2) const {
+        return this->x == d2.x && this->y == d2.y && this->z == d2.z;
+    }
+
+    bool operator!=(const Direction d2) const {
+        return this->x != d2.x || this->y != d2.y || this->z != d2.z;
+    }
 };
 
 inline Direction operator/(const float lhs, const Direction & rhs) {
@@ -126,6 +142,14 @@ struct Point {
 
     [[nodiscard]] Point maxp(const Point p2) const {
         return {std::max(this->x, p2.x),std::max(this->y, p2.y),std::max(this->z, p2.z)};
+    }
+
+    bool operator==(const Point d2) const {
+        return this->x == d2.x && this->y == d2.y && this->z == d2.z;
+    }
+
+    bool operator!=(const Point d2) const {
+        return this->x != d2.x || this->y != d2.y || this->z != d2.z;
     }
 };
 
