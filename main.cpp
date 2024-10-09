@@ -10,7 +10,6 @@
 
 #include "util.h"
 #include "ray.h"
-#include "AABB.h"
 #include "intersection.h"
 #include "tests.h"
 
@@ -86,7 +85,7 @@ int main()
 
     const float focal = 1000.0;
 
-    Scene S = very_simple();
+    Scene S = full_test_scene();
 
     for (int i = 0; i < h; i++) {
         float y = i;

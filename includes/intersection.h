@@ -5,8 +5,11 @@
 #ifndef INTERSECTION_H
 #define INTERSECTION_H
 
+#include <vector>
+
 #include "ray.h"
 #include "util.h"
+#include "AABB.h"
 
 using namespace std;
 
@@ -102,5 +105,17 @@ inline Intersection intersect_spheres(const Scene& s, const Ray &r) {
 
     return ret;
 }
+
+// Object hierarchy
+
+inline AABB sphere_to_aabb(const Sphere &sphere)
+{
+    const Point r = Point{sphere.radius, sphere.radius, sphere.radius};
+    const Point pmin = Point{sphere.center.x - sphere.radius, sphere.center.y - sphere.radius, sphere.center.z - sphere.radius};
+    const Point pmax = Point{sphere.center.x + sphere.radius, sphere.center.y + sphere.radius, sphere.center.z + sphere.radius};
+
+    return AABB{pmin, pmax};
+}
+
 
 #endif //INTERSECTION_H

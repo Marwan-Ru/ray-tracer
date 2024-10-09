@@ -41,8 +41,9 @@ inline bool test_sphere_intersection() {
     const Ray r1 = Ray(Point(0,0,0), Direction(0,0,-1)); // This one intersects
     const Ray r2 = Ray(Point(0,0,0), Direction(0,0,1)); // This one doesn't
     const Ray r3 = Ray(Point(0,0,-20), Direction(0,0,-1)); // This one is inside and should intersect
+    const Ray r4 = Ray(Point(0,20,-20), Direction(0,0,-11)); // This one doesn't
 
-    return intersect_sphere(s1, r1).isIntersection && !(intersect_sphere(s1, r2).isIntersection) && intersect_sphere(s1, r3).isIntersection;
+    return intersect_sphere(s1, r1).isIntersection && !(intersect_sphere(s1, r2).isIntersection) && intersect_sphere(s1, r3).isIntersection && !intersect_sphere(s1, r4).isIntersection;
 }
 
 inline bool test_aabb_intersection() {
