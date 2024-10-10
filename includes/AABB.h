@@ -26,7 +26,7 @@ struct  AABB {
     AABB(Point pmin, Point pmax) : pmin(pmin), pmax(pmax) {}
 
     [[nodiscard]] AABB unionAABB(const AABB &other) const {
-      return {this->pmin.minp(other.pmin), this->pmax.minp(other.pmax)};
+      return {this->pmin.minp(other.pmin), this->pmax.maxp(other.pmax)};
     };
 
     [[nodiscard]] Axis largestAxis() const {
@@ -63,7 +63,7 @@ inline InterAABB intersect_aabb(const AABB &cube, const Ray &ray) {
   float tminpp = max(tminp, min(tz1, tz2));
   float tmaxpp = min(tmaxp, max(tz1, tz2));
 
-  if(tmaxpp < tminpp || tminpp < 0){
+  if(tmaxpp < tminpp){
     ret.isIntersection = false;
   }else{
     ret.isIntersection = true;

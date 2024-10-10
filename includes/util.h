@@ -7,6 +7,8 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#define LEAF_SIZE 10
+
 #include <iostream>
 #include <fstream>
 #include <string>

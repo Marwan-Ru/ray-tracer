@@ -22,7 +22,7 @@ float visibility(const Scene& S, const Light l, const Point p) {
 
     const float light_distance = (l.position - p).length();
 
-    if(const Intersection ret = intersect_spheres(S, r); ret.isIntersection) {
+    if(const Intersection ret = intersect_spheres(S.spheres, r); ret.isIntersection) {
         if (const float intersection_distance = (ret.intersection - p).length(); intersection_distance < light_distance) {
             return 0;
         }
@@ -63,12 +63,16 @@ Scene very_simple() {
     return S;
 }
 
-Scene close_scene() {
+Scene million_sphere_scene() {
     Scene S = Scene();
 
-    S.addSphere( Sphere(10, Point{ 0,0,20 }, Color::white()) );
-
-    S.addLight( Light(Point{ 0,0, -100 }, 100) );
+    for (int i = 0; i < 100; i++) {
+        for (int j = 0; j < 100; j++) {
+            for (int k = 0; k < 100; k++) {
+                S.addSphere(Sphere(1, Point(i * 10,j* 10,k* 10), Color::white()));
+            }
+        }
+    }
 
     return S;
 }
@@ -99,7 +103,7 @@ int main()
 
             Ray ray = Ray(pixel, direction.normalize());
 
-            if (Intersection it_m = intersect_spheres(S, ray); it_m.isIntersection) {
+            if (Intersection it_m = intersect_spheres(S.spheres, ray); it_m.isIntersection) {
                 // Compute the distance in "scene"-space
                 Color v = Color::black();
 
