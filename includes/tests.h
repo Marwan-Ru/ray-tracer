@@ -6,7 +6,6 @@
 #ifndef TESTS_H
 #define TESTS_H
 
-#include <cfloat>
 #include <string>
 
 #include "util.h"
@@ -105,7 +104,7 @@ inline bool test_BVH_creation() {
     for (int i = 0; i < 100; i++) {
         for (int j = 0; j < 100; j++) {
             for (int k = 0; k < 100; k++) {
-                spheres.emplace_back(1, Point(i * 10,j* 10,k* 10), Color::white());
+                spheres.emplace_back(1, Point(static_cast<float>(i) * 10,static_cast<float>(j)* 10,static_cast<float>(k) * 10), Color::white());
             }
         }
     }
@@ -158,11 +157,14 @@ inline Scene full_test_scene() {
     // --- End of unit testing ---
 
     // We create a simple scene and pass it to test that we get an image
-    Scene S;
+    vector<Sphere> spheres;
+    vector<Light> lights;
 
-    S.addLight( Light(Point{ 200,250,-100 }, 100000));
+    lights.emplace_back(Point{ 200,250,-100 }, 100000);
+    spheres.emplace_back(200, Point{ 0,0,300 }, Color::white() );
 
-    S.addSphere( Sphere(200, Point{ 0,0,300 }, Color::white()) );
+
+    Scene S = Scene(build_hierarchy(spheres), lights);
 
     return S;
 };

@@ -43,25 +43,25 @@ inline InterAABB intersect_aabb(const AABB &cube, const Ray &ray) {
   InterAABB ret = InterAABB();
 
   // X slab
-  float tx1 = (cube.pmin.x - ray.origin.x) * ray.inv_direction.x;
-  float tx2 = (cube.pmax.x - ray.origin.x) * ray.inv_direction.x;
+  const float tx1 = (cube.pmin.x - ray.origin.x) * ray.inv_direction.x;
+  const float tx2 = (cube.pmax.x - ray.origin.x) * ray.inv_direction.x;
 
-  float tmin = min(tx1, tx2);
-  float tmax = max(tx1, tx2);
+  const float tmin = min(tx1, tx2);
+  const float tmax = max(tx1, tx2);
 
   // Y slab
-  float ty1 = (cube.pmin.y - ray.origin.y) * ray.inv_direction.y;
-  float ty2 = (cube.pmax.y - ray.origin.y) * ray.inv_direction.y;
+  const float ty1 = (cube.pmin.y - ray.origin.y) * ray.inv_direction.y;
+  const float ty2 = (cube.pmax.y - ray.origin.y) * ray.inv_direction.y;
 
-  float tminp = max(tmin, min(ty1, ty2));
-  float tmaxp = min(tmax, max(ty1, ty2));
+  const float tminp = max(tmin, min(ty1, ty2));
+  const float tmaxp = min(tmax, max(ty1, ty2));
 
   // Z slab
-  float tz1 = (cube.pmin.z - ray.origin.z) * ray.inv_direction.z;
-  float tz2 = (cube.pmax.z - ray.origin.z) * ray.inv_direction.z;
+  const float tz1 = (cube.pmin.z - ray.origin.z) * ray.inv_direction.z;
+  const float tz2 = (cube.pmax.z - ray.origin.z) * ray.inv_direction.z;
 
-  float tminpp = max(tminp, min(tz1, tz2));
-  float tmaxpp = min(tmaxp, max(tz1, tz2));
+  const float tminpp = max(tminp, min(tz1, tz2));
+  const float tmaxpp = min(tmaxp, max(tz1, tz2));
 
   if(tmaxpp < tminpp){
     ret.isIntersection = false;

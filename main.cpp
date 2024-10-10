@@ -22,7 +22,7 @@ float visibility(const Scene& S, const Light l, const Point p) {
 
     const float light_distance = (l.position - p).length();
 
-    if(const Intersection ret = intersect_spheres(S.spheres, r); ret.isIntersection) {
+    if(const Intersection ret = intersectObjectHierarchy(S.root, r); ret.isIntersection) {
         if (const float intersection_distance = (ret.intersection - p).length(); intersection_distance < light_distance) {
             return 0;
         }
@@ -32,6 +32,7 @@ float visibility(const Scene& S, const Light l, const Point p) {
 }
 
 // --- Some scenes --
+/*
 Scene Cornell_box() {
     Scene S = Scene();
 
@@ -62,20 +63,29 @@ Scene very_simple() {
     S.addSphere( Sphere(150, Point{ -400,-200,320 }, Color(200, 0, 0) ));
     return S;
 }
+*/
 
-Scene million_sphere_scene() {
-    Scene S = Scene();
 
-    for (int i = 0; i < 100; i++) {
-        for (int j = 0; j < 100; j++) {
-            for (int k = 0; k < 100; k++) {
-                S.addSphere(Sphere(1, Point(i * 10,j* 10,k* 10), Color::white()));
+Scene n_sphere_scene(int n) {
+    vector<Sphere> spheres;
+    vector<Light> lights;
+
+    const float d = 300.0f / static_cast<float>(n);
+    const float radius = 80.f / static_cast<float>(n);
+
+    for (int i = -n; i < n; i++) {
+        for (int j = -n; j < n; j++) {
+            for (int k = -n; k < n; k++) {
+                spheres.emplace_back(radius, Point(static_cast<float>(i) * d, static_cast<float>(j) * d, static_cast<float>(k) * d), Color::white());
             }
         }
     }
 
+    Scene S = Scene(build_hierarchy(spheres), lights);
+
     return S;
 }
+
 
 int main()
 {
@@ -87,14 +97,14 @@ int main()
     fileOut.open("rtresult.ppm", std::fstream::out);
     fileOut << "P3" << std::endl << std::to_string(w) << " " << std::to_string(h) << std::endl << "255" << std::endl;
 
-    const float focal = 1000.0;
+    Scene S = n_sphere_scene(10);
 
-    Scene S = full_test_scene();
-
+    clock_t begin = clock();
     for (int i = 0; i < h; i++) {
-        float y = i;
+        auto y = static_cast<float>(i);
         for (int j = 0; j < w; j++) {
-            float x = j;
+            constexpr float focal = 10000.0;
+            auto x = static_cast<float>(j);
 
             Point pixel = Point{static_cast<float>(x * 2.0 - w),static_cast<float>(y * 2.0 - h),0.0};
 
@@ -103,7 +113,7 @@ int main()
 
             Ray ray = Ray(pixel, direction.normalize());
 
-            if (Intersection it_m = intersect_spheres(S.spheres, ray); it_m.isIntersection) {
+            if (Intersection it_m = intersectObjectHierarchy(S.root, ray); it_m.isIntersection) {
                 // Compute the distance in "scene"-space
                 Color v = Color::black();
 
@@ -118,7 +128,6 @@ int main()
 
                     v = v + light_contribution * visibility(S, l, it_m.intersection);
                 }
-
                 v.cap();
                 write_color(&fileOut, v);
             }
@@ -127,4 +136,10 @@ int main()
             }
         }
     }
+    clock_t end = clock();
+
+    cout << "Time elapsed in s: " << (end - begin) / CLOCKS_PER_SEC << " seconds" << std::endl;
+    cout << "Time elapsed in ms: " << (end - begin) * 1000.0 / CLOCKS_PER_SEC << std::endl;
+
+    fileOut.close();
 }

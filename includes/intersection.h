@@ -6,7 +6,6 @@
 #define INTERSECTION_H
 
 
-#include <utility>
 #include <vector>
 
 #include "ray.h"
@@ -30,22 +29,6 @@ struct Light {
     Light(const Point position, const float intensity) : position(position), intensity(intensity) {}
 };
 
-struct Scene {
-    vector<Sphere> spheres;
-    vector<Light> lights;
-
-    Scene(const vector<Sphere>& spheres, const vector<Light>& lights) : spheres(spheres), lights(lights) {}
-
-    Scene() : spheres(), lights() {}
-
-    void addSphere(const Sphere& sphere) {
-        spheres.push_back(sphere);
-    }
-
-    void addLight(const Light& light) {
-        lights.push_back(light);
-    }
-};
 
 struct Intersection {
     bool isIntersection;
@@ -59,27 +42,26 @@ struct Intersection {
 };
 
 inline Intersection intersect_sphere(const Sphere &s, const Ray &r) {
-    Intersection ret = Intersection();
+    Intersection ret;
     const Direction oc = r.origin - s.center;
 
     // Note : we can simplify the value of a if ray direction is normalized
-    const double a = r.direction.length_squared();
-    const double b = 2.0 * oc.dot(r.direction);
-    const double c = oc.length_squared() - sq(s.radius);
+    const float a = r.direction.length_squared();
+    const float b = 2.0f * oc.dot(r.direction);
+    const float c = oc.length_squared() - sq(s.radius);
 
     // is intersection (we don't care yet about positive or first)
-    if (const double delta = b * b - 4.0 * a * c; delta >= 0.0) {
+    if (const float delta = b * b - 4.0f * a * c; delta >= 0.0f) {
+        const float sqdelta = sqrt(delta);
+        const float t1 = (-b - sqdelta) / (2.0f * a);
+        const float t2 = (-b + sqdelta) / (2.0f * a);
 
-        double sqdelta = sqrt(delta);
-        const double t1 = (-b - sqdelta) / (2.0 * a);
-        const double t2 = (-b + sqdelta) / (2.0 * a);
-
-        if (t1 >= 0.0 && t2 >= 0.0) {
+        if (t1 >= 0.0f && t2 >= 0.0f) {
             ret.t = min(t1, t2); // Choose the closer intersection
-        } else if (t1 >= 0.0) {
+        } else if (t1 >= 0.0f) {
             ret.t = t1;
         }
-        else if (t2 >= 0.0) {
+        else if (t2 >= 0.0f) {
             ret.t = t2;
         }
 
@@ -87,6 +69,8 @@ inline Intersection intersect_sphere(const Sphere &s, const Ray &r) {
             ret.isIntersection = true;
             ret.intersection = r.origin + r.direction * ret.t;
             ret.sphere = s;
+        }else {
+            ret = Intersection();
         }
 
     }
@@ -96,22 +80,18 @@ inline Intersection intersect_sphere(const Sphere &s, const Ray &r) {
 inline Intersection intersect_spheres(const vector<Sphere>& spheres, const Ray &r) {
     float closest = INFINITY;
     Intersection ret = Intersection();
-
-
     for (auto sphere : spheres) {
         if(const Intersection int_i = intersect_sphere(sphere, r); int_i.isIntersection && int_i.t < closest && int_i.t >= 0) {
             closest = int_i.t;
             ret = int_i;
         }
     }
-
     return ret;
 }
 
 // Object hierarchy
 
 inline AABB sphere_to_aabb(const Sphere &sphere){
-    const Point r = Point{sphere.radius, sphere.radius, sphere.radius};
     const Point pmin = Point{sphere.center.x - sphere.radius, sphere.center.y - sphere.radius, sphere.center.z - sphere.radius};
     const Point pmax = Point{sphere.center.x + sphere.radius, sphere.center.y + sphere.radius, sphere.center.z + sphere.radius};
 
@@ -185,23 +165,36 @@ inline ObjectHierarchy build_hierarchy(vector<Sphere> &spheres) {
 inline Intersection intersectObjectHierarchy(const ObjectHierarchy &obj, const Ray &ray) {
     if(obj.isLeaf) {
         return intersect_spheres(obj.spheres, ray);
-    }else {
-        InterAABB itleft = intersect_aabb(obj.childs[0].aabb, ray);
-        InterAABB itright = intersect_aabb(obj.childs[1].aabb, ray);
+    }
+    if(!intersect_aabb(obj.aabb, ray).isIntersection) {
+        const Intersection ret;
+        return ret;
+    }
 
-        if(itleft.isIntersection) {
-            if(itright.isIntersection && itright.tmin < itleft.tmin) { // Both aabb intersects
-                // So we take the closest one
-                return intersectObjectHierarchy(obj.childs[1], ray);
-            }else {
-                return intersectObjectHierarchy(obj.childs[0], ray);
-            }
+    Intersection itleft = intersectObjectHierarchy(obj.childs[0], ray);
+    Intersection itright = intersectObjectHierarchy(obj.childs[1], ray);
+
+    if(itleft.isIntersection) {
+        if(itright.isIntersection && itright.t < itleft.t) { // Both aabb intersects
+            // So we take the closest one
+            return itright;
         }else {
-            const Intersection ret;
-            return ret; // Nothing intersects we return no intersections
+            return itleft;
         }
+    }else {
+        return itright;
     }
 }
 
+struct Scene {
+    ObjectHierarchy root;
+    vector<Light> lights;
+
+    Scene(ObjectHierarchy root, const vector<Light>& lights) : root(std::move(root)), lights(lights) {}
+
+    void addLight(const Light& light) {
+        lights.push_back(light);
+    }
+};
 
 #endif //INTERSECTION_H
