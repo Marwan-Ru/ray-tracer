@@ -19,30 +19,27 @@ struct Sphere {
     Point center;
     Color albedo;
 
-    Sphere(const float radius, const Point center, const Color albedo) : radius(radius), center(center), albedo(albedo) {}
+    Sphere(const float &radius, const Point &center, const Color &albedo) : radius(radius), center(center), albedo(albedo) {}
 };
 
 struct Light {
     Point position;
     float intensity;
 
-    Light(const Point position, const float intensity) : position(position), intensity(intensity) {}
+    Light(const Point &position, const float &intensity) : position(position), intensity(intensity) {}
 };
 
 
 struct Intersection {
-    bool isIntersection;
     float t;
     Point intersection;
-    Sphere sphere;
+    const Sphere * sphere;
 
-    Intersection(const bool isIntersection, const float t, const Point intersection, const Sphere& sphere) : isIntersection(isIntersection), t(t), intersection(intersection), sphere(sphere) {}
-
-    Intersection() : isIntersection(false), t(-INFINITY), intersection(Point{ 0,0,0 }), sphere(Sphere(0, Point{ 0,0,0 }, Color::white())) {}
+    Intersection(const float &t, const Point &intersection, const Sphere * sphere) : t(t), intersection(intersection), sphere(sphere) {}
 };
 
-inline Intersection intersect_sphere(const Sphere &s, const Ray &r) {
-    Intersection ret;
+inline std::optional<Intersection> intersect_sphere(const Sphere &s, const Ray &r) {
+    float t = -INFINITY;
     const Direction oc = r.origin - s.center;
 
     // Note : we can simplify the value of a if ray direction is normalized
@@ -57,36 +54,37 @@ inline Intersection intersect_sphere(const Sphere &s, const Ray &r) {
         const float t2 = (-b + sqdelta) / (2.0f * a);
 
         if (t1 >= 0.0f && t2 >= 0.0f) {
-            ret.t = min(t1, t2); // Choose the closer intersection
+            t = min(t1, t2); // Choose the closer intersection
         } else if (t1 >= 0.0f) {
-            ret.t = t1;
+            t = t1;
         }
         else if (t2 >= 0.0f) {
-            ret.t = t2;
+            t = t2;
         }
 
-        if(ret.t >= 0.0) {
-            ret.isIntersection = true;
-            ret.intersection = r.origin + r.direction * ret.t;
-            ret.sphere = s;
+        if(t >= 0.0) {
+            return Intersection( t, r.origin + r.direction * t, &s);
         }else {
-            ret = Intersection();
+            return nullopt;
         }
 
     }
-    return ret;
+    return nullopt;
 }
 
-inline Intersection intersect_spheres(const vector<Sphere>& spheres, const Ray &r) {
+inline std::optional<Intersection> intersect_spheres(const vector<Sphere>& spheres, const Ray &r) {
     float closest = INFINITY;
-    Intersection ret = Intersection();
+    std::optional<Intersection> closest_intersection = nullopt;
     for (auto sphere : spheres) {
-        if(const Intersection int_i = intersect_sphere(sphere, r); int_i.isIntersection && int_i.t < closest && int_i.t >= 0) {
-            closest = int_i.t;
-            ret = int_i;
+        if (std::optional<Intersection> int_i = intersect_sphere(sphere, r); int_i.has_value()) {
+            if(int_i.value().t < closest && int_i.value().t >= 0) {
+                closest = int_i.value().t;
+                closest_intersection = int_i;
+            }
         }
+
     }
-    return ret;
+    return closest_intersection;
 }
 
 // Object hierarchy
@@ -162,28 +160,26 @@ inline ObjectHierarchy build_hierarchy(vector<Sphere> &spheres) {
     return {aabb, childs}; // Node
 }
 
-inline Intersection intersectObjectHierarchy(const ObjectHierarchy &obj, const Ray &ray) {
+inline std::optional<Intersection> intersectObjectHierarchy(const ObjectHierarchy &obj, const Ray &ray) {
+    if(!intersect_aabb(obj.aabb, ray).has_value()) {
+        return nullopt;
+    }
     if(obj.isLeaf) {
         return intersect_spheres(obj.spheres, ray);
     }
-    if(!intersect_aabb(obj.aabb, ray).isIntersection) {
-        const Intersection ret;
-        return ret;
-    }
 
-    Intersection itleft = intersectObjectHierarchy(obj.childs[0], ray);
-    Intersection itright = intersectObjectHierarchy(obj.childs[1], ray);
 
-    if(itleft.isIntersection) {
-        if(itright.isIntersection && itright.t < itleft.t) { // Both aabb intersects
+    std::optional<Intersection> itleft = intersectObjectHierarchy(obj.childs[0], ray);
+    std::optional<Intersection> itright = intersectObjectHierarchy(obj.childs[1], ray);
+
+    if(itleft.has_value()) {
+        if(itright.has_value()) { // Both aabb intersects
             // So we take the closest one
-            return itright;
-        }else {
-            return itleft;
+            if ( itright.value().t < itleft.value().t) return itright;
         }
-    }else {
-        return itright;
+        return itleft;
     }
+    return itright;
 }
 
 struct Scene {

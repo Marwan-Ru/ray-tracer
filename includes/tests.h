@@ -29,7 +29,7 @@ inline bool test_sphere_intersection() {
     const Ray r3 = Ray(Point(0,0,-20), Direction(0,0,-1)); // This one is inside and should intersect
     const Ray r4 = Ray(Point(0,20,-20), Direction(0,0,-11)); // This one doesn't
 
-    return intersect_sphere(s1, r1).isIntersection && !(intersect_sphere(s1, r2).isIntersection) && intersect_sphere(s1, r3).isIntersection && !intersect_sphere(s1, r4).isIntersection;
+    return intersect_sphere(s1, r1).has_value() && !(intersect_sphere(s1, r2).has_value()) && intersect_sphere(s1, r3).has_value() && !intersect_sphere(s1, r4).has_value();
 }
 
 inline bool test_aabb_intersection() {
@@ -43,16 +43,16 @@ inline bool test_aabb_intersection() {
     const Ray r6 = Ray(Point(15,15,-15), Direction(0,0,1)); // Should intersect
     const Ray r7 = Ray(Point(15,15,15), Direction(0,0,1)); // Should intersect
 
-    const InterAABB res1 = intersect_aabb(c1, r1);
-    const InterAABB res2 = intersect_aabb(c1, r2);
-    const InterAABB res3 = intersect_aabb(c1, r3);
-    const InterAABB res4 = intersect_aabb(c1, r4);
-    const InterAABB res5 = intersect_aabb(c1, r5);
-    const InterAABB res6 = intersect_aabb(c1, r6);
-    const InterAABB res7 = intersect_aabb(c1, r7);
+    const optional<float> res1 = intersect_aabb(c1, r1);
+    const optional<float> res2 = intersect_aabb(c1, r2);
+    const optional<float> res3 = intersect_aabb(c1, r3);
+    const optional<float> res4 = intersect_aabb(c1, r4);
+    const optional<float> res5 = intersect_aabb(c1, r5);
+    const optional<float> res6 = intersect_aabb(c1, r6);
+    const optional<float> res7 = intersect_aabb(c1, r7);
 
 
-    return res1.isIntersection && !res2.isIntersection && res3.isIntersection && res4.isIntersection && !res5.isIntersection && res6.isIntersection && res7.isIntersection;
+    return res1.has_value() && !res2.has_value() && res3.has_value() && res4.has_value() && !res5.has_value() && res6.has_value() && res7.has_value();
 }
 
 inline bool test_optimised_aabb_intersection() {
@@ -61,10 +61,10 @@ inline bool test_optimised_aabb_intersection() {
     const Ray r1 = Ray(Point(15,15,15), Direction(0,0,1)); // Ray inside box should intersect
     const Ray r2 = Ray(Point(-15,15,15), Direction(-1,0,0)); // Box behind ray origin so should not intersect (if optimized)
 
-    const InterAABB res1 = intersect_aabb(c1, r1);
-    const InterAABB res2 = intersect_aabb(c1, r2);
+    const optional<float> res1 = intersect_aabb(c1, r1);
+    const optional<float> res2 = intersect_aabb(c1, r2);
 
-    return res1.isIntersection && !res2.isIntersection;
+    return res1.has_value() && !res2.has_value();
 }
 
 // --- end intersection related tests ---
@@ -122,9 +122,7 @@ inline bool test_simple_BVH_to_ray() {
 
     const ObjectHierarchy BVH = build_hierarchy(spheres);
 
-    const Intersection it1 = intersectObjectHierarchy(BVH, r1);
-
-    return it1.isIntersection;
+    return intersectObjectHierarchy(BVH, r1).has_value();
 }
 
 inline void launch_test(const string& name, const bool res) {

@@ -39,8 +39,7 @@ struct  AABB {
     }
 };
 
-inline InterAABB intersect_aabb(const AABB &cube, const Ray &ray) {
-  InterAABB ret = InterAABB();
+inline optional<float> intersect_aabb(const AABB &cube, const Ray &ray) {
 
   // X slab
   const float tx1 = (cube.pmin.x - ray.origin.x) * ray.inv_direction.x;
@@ -64,12 +63,10 @@ inline InterAABB intersect_aabb(const AABB &cube, const Ray &ray) {
   const float tmaxpp = min(tmaxp, max(tz1, tz2));
 
   if(tmaxpp < tminpp){
-    ret.isIntersection = false;
+    return nullopt;
   }else{
-    ret.isIntersection = true;
-    ret.tmin = tminpp;
+    return tminpp;
   }
-  return ret;
 }
 
 #endif //AABB_H

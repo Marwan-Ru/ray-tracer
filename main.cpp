@@ -22,8 +22,8 @@ float visibility(const Scene& S, const Light l, const Point p) {
 
     const float light_distance = (l.position - p).length();
 
-    if(const Intersection ret = intersectObjectHierarchy(S.root, r); ret.isIntersection) {
-        if (const float intersection_distance = (ret.intersection - p).length(); intersection_distance < light_distance) {
+    if(const optional<Intersection> ret = intersectObjectHierarchy(S.root, r); ret.has_value()) {
+        if (const float intersection_distance = (ret.value().intersection - p).length(); intersection_distance < light_distance) {
             return 0;
         }
     }
@@ -113,20 +113,20 @@ int main()
 
             Ray ray = Ray(pixel, direction.normalize());
 
-            if (Intersection it_m = intersectObjectHierarchy(S.root, ray); it_m.isIntersection) {
+            if (optional<Intersection> it_m = intersectObjectHierarchy(S.root, ray); it_m.has_value()) {
                 // Compute the distance in "scene"-space
                 Color v = Color::black();
 
                 for (auto l : S.lights) {
-                    Direction to_light = l.position - it_m.intersection;
+                    Direction to_light = l.position - it_m.value().intersection;
                     float light_distance = to_light.length_squared();
 
-                    Direction N = (it_m.intersection - it_m.sphere.center).normalize();
+                    Direction N = (it_m.value().intersection - it_m.value().sphere->center).normalize();
                     float cos = to_light.normalize().dot(N);
 
-                    Color light_contribution = (it_m.sphere.albedo * (cos / light_distance)) * l.intensity;
+                    Color light_contribution = (it_m.value().sphere->albedo * (cos / light_distance)) * l.intensity;
 
-                    v = v + light_contribution * visibility(S, l, it_m.intersection);
+                    v = v + light_contribution * visibility(S, l, it_m.value().intersection);
                 }
                 v.cap();
                 write_color(&fileOut, v);
@@ -138,7 +138,6 @@ int main()
     }
     clock_t end = clock();
 
-    cout << "Time elapsed in s: " << (end - begin) / CLOCKS_PER_SEC << " seconds" << std::endl;
     cout << "Time elapsed in ms: " << (end - begin) * 1000.0 / CLOCKS_PER_SEC << std::endl;
 
     fileOut.close();
