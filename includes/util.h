@@ -58,9 +58,9 @@ struct Color {
     }
 };
 
-static void write_color(std::ofstream * out, Color c) {
+static void write_color(std::ofstream * out, const float * c) {
 
-    * out << std::to_string(static_cast<int>(c.red)) << " " << std::to_string(static_cast<int>(c.green)) << " " << std::to_string(static_cast<int>(c.blue)) << " ";
+    * out << std::to_string(static_cast<int>(c[0])) << " " << std::to_string(static_cast<int>(c[1])) << " " << std::to_string(static_cast<int>(c[2])) << " ";
 }
 
 // --- Both basically vectors but two different concepts ---

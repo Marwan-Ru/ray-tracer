@@ -20,10 +20,8 @@ float visibility(const Scene& S, const Light l, const Point p) {
     const Direction dir = (l.position - p).normalize();
     const auto r = Ray(p + dir * 0.1, dir);
 
-    const float light_distance = (l.position - p).length();
-
     if(const optional<Intersection> ret = intersectObjectHierarchy(S.root, r); ret.has_value()) {
-        if (const float intersection_distance = (ret.value().intersection - p).length(); intersection_distance < light_distance) {
+        if (const float intersection_distance = (ret.value().intersection - p).length(); intersection_distance < (l.position - p).length()) {
             return 0;
         }
     }
@@ -81,6 +79,9 @@ Scene n_sphere_scene(int n) {
         }
     }
 
+    lights.push_back({ { 5000.f, 0.f, 0.f }, 400000.f });
+    lights.push_back({ { 1.f, -1000.f, 0.f }, 100000.f});
+    lights.push_back({ { -1000.f, 1000.f, 0.f }, 100000.f });
     Scene S = Scene(build_hierarchy(spheres), lights);
 
     return S;
@@ -91,13 +92,18 @@ int main()
 {
     constexpr int w = 800;
     constexpr int h = 600;
+    float buffer[h][w][3];
 
     // We use the ppm format
     std::ofstream fileOut;
     fileOut.open("rtresult.ppm", std::fstream::out);
     fileOut << "P3" << std::endl << std::to_string(w) << " " << std::to_string(h) << std::endl << "255" << std::endl;
 
-    Scene S = n_sphere_scene(10);
+    int n = 50;
+    Scene S = n_sphere_scene(n); // One million sphere -> n = 50
+
+    cout << 8 * n * n * n << " Spheres in the scene, beginning ray tracing..." << endl;
+
 
     clock_t begin = clock();
     for (int i = 0; i < h; i++) {
@@ -129,16 +135,27 @@ int main()
                     v = v + light_contribution * visibility(S, l, it_m.value().intersection);
                 }
                 v.cap();
-                write_color(&fileOut, v);
+                buffer[i][j][0] = v.red;
+                buffer[i][j][1] = v.green;
+                buffer[i][j][2] = v.blue;
+                //write_color(&fileOut, v);
             }
             else {
-                write_color(&fileOut, Color(30, 200, 30));
+                buffer[i][j][0] = 40.0f;
+                buffer[i][j][1] = 40.0f;
+                buffer[i][j][2] = 40.0f;
             }
         }
     }
     clock_t end = clock();
 
     cout << "Time elapsed in ms: " << (end - begin) * 1000.0 / CLOCKS_PER_SEC << std::endl;
+
+    for (auto & i : buffer) {
+        for (auto & j : i) {
+            write_color(&fileOut, j);
+        }
+    }
 
     fileOut.close();
 }
