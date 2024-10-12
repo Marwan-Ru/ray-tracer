@@ -99,57 +99,59 @@ int main()
     fileOut.open("rtresult.ppm", std::fstream::out);
     fileOut << "P3" << std::endl << std::to_string(w) << " " << std::to_string(h) << std::endl << "255" << std::endl;
 
-    int n = 50;
+    int n = 100;
     Scene S = n_sphere_scene(n); // One million sphere -> n = 50
 
     cout << 8 * n * n * n << " Spheres in the scene, beginning ray tracing..." << endl;
 
-
     clock_t begin = clock();
-    for (int i = 0; i < h; i++) {
-        auto y = static_cast<float>(i);
-        for (int j = 0; j < w; j++) {
-            constexpr float focal = 10000.0;
-            auto x = static_cast<float>(j);
 
-            Point pixel = Point{static_cast<float>(x * 2.0 - w),static_cast<float>(y * 2.0 - h),0.0};
+    for(int a = 0; a < 10; a++) {
+        for (int i = 0; i < h; i++) {
+            auto y = static_cast<float>(i);
+            for (int j = 0; j < w; j++) {
+                constexpr float focal = 10000.0;
+                auto x = static_cast<float>(j);
 
-            Point focalPoint = Point{0.0,0.0,-focal};
-            Direction direction = pixel - focalPoint;
+                Point pixel = Point{static_cast<float>(x * 2.0 - w),static_cast<float>(y * 2.0 - h),0.0};
 
-            Ray ray = Ray(pixel, direction.normalize());
+                Point focalPoint = Point{0.0,0.0,-focal};
+                Direction direction = pixel - focalPoint;
 
-            if (optional<Intersection> it_m = intersectObjectHierarchy(S.root, ray); it_m.has_value()) {
-                // Compute the distance in "scene"-space
-                Color v = Color::black();
+                Ray ray = Ray(pixel, direction.normalize());
 
-                for (auto l : S.lights) {
-                    Direction to_light = l.position - it_m.value().intersection;
-                    float light_distance = to_light.length_squared();
+                if (optional<Intersection> it_m = intersectObjectHierarchy(S.root, ray); it_m.has_value()) {
+                    // Compute the distance in "scene"-space
+                    Color v = Color::black();
 
-                    Direction N = (it_m.value().intersection - it_m.value().sphere->center).normalize();
-                    float cos = to_light.normalize().dot(N);
+                    for (auto l : S.lights) {
+                        Direction to_light = l.position - it_m.value().intersection;
+                        float light_distance = to_light.length_squared();
 
-                    Color light_contribution = (it_m.value().sphere->albedo * (cos / light_distance)) * l.intensity;
+                        Direction N = (it_m.value().intersection - it_m.value().sphere->center).normalize();
+                        float cos = to_light.normalize().dot(N);
 
-                    v = v + light_contribution * visibility(S, l, it_m.value().intersection);
+                        Color light_contribution = (it_m.value().sphere->albedo * (cos / light_distance)) * l.intensity;
+
+                        v = v + light_contribution * visibility(S, l, it_m.value().intersection);
+                    }
+                    v.cap();
+                    buffer[i][j][0] = v.red;
+                    buffer[i][j][1] = v.green;
+                    buffer[i][j][2] = v.blue;
+                    //write_color(&fileOut, v);
                 }
-                v.cap();
-                buffer[i][j][0] = v.red;
-                buffer[i][j][1] = v.green;
-                buffer[i][j][2] = v.blue;
-                //write_color(&fileOut, v);
-            }
-            else {
-                buffer[i][j][0] = 40.0f;
-                buffer[i][j][1] = 40.0f;
-                buffer[i][j][2] = 40.0f;
+                else {
+                    buffer[i][j][0] = 40.0f;
+                    buffer[i][j][1] = 40.0f;
+                    buffer[i][j][2] = 40.0f;
+                }
             }
         }
     }
     clock_t end = clock();
 
-    cout << "Time elapsed in ms: " << (end - begin) * 1000.0 / CLOCKS_PER_SEC << std::endl;
+    cout << "Mean Time elapsed in ms: " << (end - begin) * 1000.0 / CLOCKS_PER_SEC / 10 << std::endl;
 
     for (auto & i : buffer) {
         for (auto & j : i) {
