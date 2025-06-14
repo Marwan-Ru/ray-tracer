@@ -87,20 +87,19 @@ Scene n_sphere_scene(int n) {
     return S;
 }
 
-
+static float buffer[1080][1920][3];
 int main()
 {
-    constexpr int w = 800;
-    constexpr int h = 600;
-    float buffer[h][w][3];
+    constexpr int w = 1920;
+    constexpr int h = 1080;
 
     // We use the ppm format
     std::ofstream fileOut;
     fileOut.open("rtresult.ppm", std::fstream::out);
     fileOut << "P3" << std::endl << std::to_string(w) << " " << std::to_string(h) << std::endl << "255" << std::endl;
 
-    int n = 100;
-    Scene S = n_sphere_scene(n); // One million sphere -> n = 50
+    int n = 10;
+    Scene S =  n_sphere_scene(n); // One million sphere -> n = 50
 
     cout << 8 * n * n * n << " Spheres in the scene, beginning ray tracing..." << endl;
 
